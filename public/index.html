@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Song Request</title>
+  </head>
+  <body>
+    <h1>🎵 Request a Song for $1 🎵</h1>
+    <p>Scan the QR code or click below to get started.</p>
+    <button id="payButton">Pay $1 and Request a Song</button>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+      import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-functions.js";
+
+      // TODO: replace with your Firebase config
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        appId: "YOUR_APP_ID"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const functions = getFunctions(app);
+
+      const payButton = document.getElementById("payButton");
+
+      payButton.addEventListener("click", async () => {
+        const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
+        const result = await createCheckoutSession();
+        const sessionId = result.data.id;
+
+        // Redirect to Stripe Checkout
+        window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
+      });
+    </script>
+  </body>
+</html>
