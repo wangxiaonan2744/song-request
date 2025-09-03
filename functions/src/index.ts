@@ -3,7 +3,7 @@ import fetch, {Response} from "node-fetch";
 
 /**
  * Get a fresh Spotify access token using the stored refresh token.
- * @returns {Promise<string>} a valid Spotify access token
+ * @return {Promise<string>} a valid Spotify access token
  */
 async function getAccessToken(): Promise<string> {
   const clientId: string = functions.config().spotify.client_id;
