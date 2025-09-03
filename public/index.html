@@ -7,7 +7,33 @@
   <body>
     <h1>🎵 Request a Song for $1 🎵</h1>
     <p>Scan the QR code or click below to get started.</p>
-    <button id="payButton">Pay $1 and Request a Song</button>
+    <div id="paypal-button-container"></div>
+
+    <script>
+      paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color:  'blue',
+          shape:  'rect',
+          label:  'paypal'
+        },
+        createOrder: function(data, actions) {
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                value: '1.00'  // $1
+              }
+            }]
+          });
+        },
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(function(details) {
+            // After successful payment, redirect to song request form
+            window.location.href = "/song-request.html";
+          });
+        }
+      }).render('#paypal-button-container');
+    </script>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
