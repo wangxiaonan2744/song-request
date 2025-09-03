@@ -1,7 +1,10 @@
 import * as functions from "firebase-functions";
 import fetch from "node-fetch";
 
-// Helper: get fresh Spotify access token
+/**
+ * test
+ * @returns test
+ */
 async function getAccessToken(): Promise<string> {
   const clientId = functions.config().spotify.client_id;
   const clientSecret = functions.config().spotify.client_secret;
