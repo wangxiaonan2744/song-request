@@ -1,18 +1,18 @@
 import * as functions from "firebase-functions";
-import fetch from "node-fetch";
+import fetch, { Response } from "node-fetch";
 
 /**
- * test
- * @return test
+ * Get a fresh Spotify access token using the stored refresh token.
+ * @returns {Promise<string>} a valid Spotify access token
  */
 async function getAccessToken(): Promise<string> {
-  const clientId = functions.config().spotify.client_id;
-  const clientSecret = functions.config().spotify.client_secret;
-  const refreshToken = functions.config().spotify.refresh_token;
+  const clientId: string = functions.config().spotify.client_id;
+  const clientSecret: string = functions.config().spotify.client_secret;
+  const refreshToken: string = functions.config().spotify.refresh_token;
 
-  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const auth: string = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-  const response = await fetch("https://accounts.spotify.com/api/token", {
+  const response: Response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
@@ -24,39 +24,43 @@ async function getAccessToken(): Promise<string> {
     }),
   });
 
-  const data = (await response.json()) as any;
+  const data: any = await response.json();
   if (!data.access_token) {
     throw new Error("Failed to get Spotify access token: " + JSON.stringify(data));
   }
-  return data.access_token;
+  return data.access_token as string;
 }
 
-// Trigger: run whenever a new song request is created in Firestore
+/**
+ * Firestore trigger: when a new song request is added, search Spotify and add it to a playlist.
+ * @param snap Firestore snapshot of the new document
+ * @returns {Promise<void>} resolves when complete
+ */
 export const addSongToSpotify = functions.firestore
   .document("songRequests/{docId}")
-  .onCreate(async (snap) => {
+  .onCreate(async (snap): Promise<void> => {
     const { title, artist } = snap.data() as { title: string; artist?: string | null };
-    const query = artist ? `${title} ${artist}` : title;
+    const query: string = artist ? `${title} ${artist}` : title;
 
     console.log("🔎 Searching Spotify for:", query);
 
     try {
-      const token = await getAccessToken();
+      const token: string = await getAccessToken();
 
       // Search for the track
-      const searchRes = await fetch(
+      const searchRes: Response = await fetch(
         "https://api.spotify.com/v1/search?" +
           new URLSearchParams({ q: query, type: "track", limit: "1" }),
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const searchData = (await searchRes.json()) as any;
+      const searchData: any = await searchRes.json();
       if (!searchData.tracks.items.length) {
         console.error("❌ Song not found:", query);
         return;
       }
-    
-      const trackUri = searchData.tracks.items[0].uri;
+
+      const trackUri: string = searchData.tracks.items[0].uri;
       console.log("✅ Found track:", trackUri);
 
       // Add to playlist
