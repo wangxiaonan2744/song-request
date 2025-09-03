@@ -3,10 +3,48 @@
   <head>
     <meta charset="UTF-8">
     <title>Song Request</title>
+
+    <!-- Load PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=AeJNcZXHo2-GKgHtgmBXvhpHfzkFPDBQp8wX_krD4xf92VZ3z4Xh1MA_Y8zNq_EIfRr_5txqdVPLokeh&currency=USD"></script>
+
+    <!-- Load Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      const firebaseConfig = {
+        apiKey: "AIzaSyDdO0OUFx2QIe74IdfN1CTXwWxQqoIzuHs",
+        authDomain: "song-request-ddc2e.firebaseapp.com",
+        projectId: "song-request-ddc2e",
+        storageBucket: "song-request-ddc2e.firebasestorage.app",
+        messagingSenderId: "498812073299",
+        appId: "1:498812073299:web:b5ced546f838983cb21da6",
+        measurementId: "G-8X16XBXZ1C"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+    </script>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      h1 {
+        color: #333;
+      }
+      #paypal-button-container {
+        margin-top: 20px;
+      }
+    </style>
   </head>
   <body>
     <h1>🎵 Request a Song for $1 🎵</h1>
-    <p>Scan the QR code or click below to get started.</p>
+    <p>Click below to pay with PayPal and unlock the request form.</p>
+
+    <!-- PayPal button container -->
     <div id="paypal-button-container"></div>
 
     <script>
@@ -28,41 +66,20 @@
         },
         onApprove: function(data, actions) {
           return actions.order.capture().then(function(details) {
-            // After successful payment, redirect to song request form
+            console.log("Payment approved:", details);
+
+            // ✅ After payment, redirect to the song request form
             window.location.href = "/song-request.html";
           });
+        },
+        onCancel: function (data) {
+          alert("Payment cancelled.");
+        },
+        onError: function (err) {
+          console.error("PayPal Checkout error:", err);
+          alert("Something went wrong with PayPal.");
         }
       }).render('#paypal-button-container');
-    </script>
-
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-      import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-functions.js";
-
-      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-      const firebaseConfig = {
-        apiKey: "AIzaSyDdO0OUFx2QIe74IdfN1CTXwWxQqoIzuHs",
-        authDomain: "song-request-ddc2e.firebaseapp.com",
-        projectId: "song-request-ddc2e",
-        storageBucket: "song-request-ddc2e.firebasestorage.app",
-        messagingSenderId: "498812073299",
-        appId: "1:498812073299:web:b5ced546f838983cb21da6",
-        measurementId: "G-8X16XBXZ1C"
-      };
-
-      const app = initializeApp(firebaseConfig);
-      const functions = getFunctions(app);
-
-      const payButton = document.getElementById("payButton");
-
-      payButton.addEventListener("click", async () => {
-        const createCheckoutSession = httpsCallable(functions, 'createCheckoutSession');
-        const result = await createCheckoutSession();
-        const sessionId = result.data.id;
-
-        // Redirect to Stripe Checkout
-        window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
-      });
     </script>
   </body>
 </html>
