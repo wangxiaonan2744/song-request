@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 
 /**
  * test
- * @returns test
+ * @return test
  */
 async function getAccessToken(): Promise<string> {
   const clientId = functions.config().spotify.client_id;
