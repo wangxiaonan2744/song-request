@@ -23,11 +23,13 @@
 
       async function submitSong(e) {
         e.preventDefault();
-        const song = document.getElementById("songInput").value;
+        const title = document.getElementById("songTitle").value;
+        const artist = document.getElementById("songArtist").value;
 
         try {
           await addDoc(collection(db, "songRequests"), {
-            song,
+            title,
+            artist: artist || null, // optional
             status: "pending",
             createdAt: serverTimestamp()
           });
@@ -70,8 +72,11 @@
   <body>
     <h1>🎶 Submit Your Song Request 🎶</h1>
     <p>Thanks for your payment! Enter your song below:</p>
+
     <form id="songForm">
-      <input type="text" id="songInput" placeholder="Song title and artist" required />
+      <input type="text" id="songTitle" placeholder="Song title" required />
+      <br />
+      <input type="text" id="songArtist" placeholder="Artist (optional)" />
       <br />
       <button type="submit">Submit</button>
     </form>
