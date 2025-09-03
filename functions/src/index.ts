@@ -17,7 +17,7 @@ async function getAccessToken(): Promise<string> {
   await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
-      Authorization: `Basic ${auth}`,
+      "Authorization": `Basic ${auth}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
