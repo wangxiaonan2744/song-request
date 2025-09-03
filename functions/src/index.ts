@@ -10,9 +10,11 @@ async function getAccessToken(): Promise<string> {
   const clientSecret: string = functions.config().spotify.client_secret;
   const refreshToken: string = functions.config().spotify.refresh_token;
 
-  const auth: string = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const auth: string =
+    Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
-  const response: Response = await fetch("https://accounts.spotify.com/api/token", {
+  const response: Response =
+  await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
@@ -26,20 +28,23 @@ async function getAccessToken(): Promise<string> {
 
   const data: any = await response.json();
   if (!data.access_token) {
-    throw new Error("Failed to get Spotify access token: " + JSON.stringify(data));
+    throw new Error("Failed to get Spotify access token: "
+      + JSON.stringify(data));
   }
   return data.access_token as string;
 }
 
 /**
- * Firestore trigger: when a new song request is added, search Spotify and add it to a playlist.
+ * Firestore trigger: when a new song request is added, search Spotify and add
+ * it to a playlist.
  * @param snap Firestore snapshot of the new document
  * @returns {Promise<void>} resolves when complete
  */
 export const addSongToSpotify = functions.firestore
   .document("songRequests/{docId}")
   .onCreate(async (snap): Promise<void> => {
-    const {title, artist} = snap.data() as {title: string; artist?: string | null};
+    const {title, artist} =
+      snap.data() as {title: string; artist?: string | null};
     const query: string = artist ? `${title} ${artist}` : title;
 
     console.log("🔎 Searching Spotify for:", query);
@@ -65,7 +70,8 @@ export const addSongToSpotify = functions.firestore
 
       // Add to playlist
       await fetch(
-        `https://api.spotify.com/v1/playlists/${functions.config().spotify.playlist_id}/tracks`,
+        `https://api.spotify.com/v1/playlists/`
+          +`${functions.config().spotify.playlist_id}/tracks`,
         {
           method: "POST",
           headers: {
