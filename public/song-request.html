@@ -3,18 +3,9 @@
   <head>
     <meta charset="UTF-8">
     <title>Submit Your Song</title>
-  </head>
-  <body>
-    <h1>Thanks for your payment! 🎶</h1>
-    <p>Enter your song request below:</p>
-    <form id="songForm">
-      <input type="text" id="songInput" placeholder="Song title and artist" required>
-      <button type="submit">Submit</button>
-    </form>
-
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-      import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+      import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
       // For Firebase JS SDK v7.20.0 and later, measurementId is optional
       const firebaseConfig = {
@@ -30,18 +21,59 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
-      const form = document.getElementById("songForm");
-      form.addEventListener("submit", async (e) => {
+      async function submitSong(e) {
         e.preventDefault();
         const song = document.getElementById("songInput").value;
-        await addDoc(collection(db, "songRequests"), {
-          song,
-          createdAt: new Date(),
-          status: "pending"
-        });
-        alert("🎉 Your song has been submitted!");
-        form.reset();
-      });
+
+        try {
+          await addDoc(collection(db, "songRequests"), {
+            song,
+            status: "pending",
+            createdAt: serverTimestamp()
+          });
+          alert("🎉 Your song has been submitted!");
+          document.getElementById("songForm").reset();
+        } catch (err) {
+          console.error("Error writing document:", err);
+          alert("Something went wrong. Please try again.");
+        }
+      }
+
+      window.onload = () => {
+        document.getElementById("songForm").addEventListener("submit", submitSong);
+      };
     </script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      input {
+        padding: 10px;
+        width: 300px;
+        margin-bottom: 10px;
+      }
+      button {
+        padding: 10px 20px;
+        background: #0070ba;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #005c99;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎶 Submit Your Song Request 🎶</h1>
+    <p>Thanks for your payment! Enter your song below:</p>
+    <form id="songForm">
+      <input type="text" id="songInput" placeholder="Song title and artist" required />
+      <br />
+      <button type="submit">Submit</button>
+    </form>
   </body>
 </html>
