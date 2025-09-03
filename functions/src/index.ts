@@ -70,12 +70,12 @@ export const addSongToSpotify = functions.firestore
 
       // Add to playlist
       await fetch(
-        `https://api.spotify.com/v1/playlists/`
-          +`${functions.config().spotify.playlist_id}/tracks`,
+        `https://api.spotify.com/v1/playlists/` +
+          `${functions.config().spotify.playlist_id}/tracks`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({uris: [trackUri]}),
