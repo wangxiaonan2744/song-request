@@ -1,5 +1,5 @@
 import * as functions from "firebase-functions";
-import fetch, { Response } from "node-fetch";
+import fetch, {Response } from "node-fetch";
 
 /**
  * Get a fresh Spotify access token using the stored refresh token.
@@ -39,7 +39,7 @@ async function getAccessToken(): Promise<string> {
 export const addSongToSpotify = functions.firestore
   .document("songRequests/{docId}")
   .onCreate(async (snap): Promise<void> => {
-    const { title, artist } = snap.data() as { title: string; artist?: string | null };
+    const {title, artist } = snap.data() as {title: string; artist?: string | null };
     const query: string = artist ? `${title} ${artist}` : title;
 
     console.log("🔎 Searching Spotify for:", query);
@@ -50,8 +50,8 @@ export const addSongToSpotify = functions.firestore
       // Search for the track
       const searchRes: Response = await fetch(
         "https://api.spotify.com/v1/search?" +
-          new URLSearchParams({ q: query, type: "track", limit: "1" }),
-        { headers: { Authorization: `Bearer ${token}` } }
+          new URLSearchParams({q: query, type: "track", limit: "1" }),
+        {headers: {Authorization: `Bearer ${token}` } }
       );
 
       const searchData: any = await searchRes.json();
@@ -72,7 +72,7 @@ export const addSongToSpotify = functions.firestore
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ uris: [trackUri] }),
+          body: JSON.stringify({uris: [trackUri] }),
         }
       );
 
