@@ -2,8 +2,8 @@
   <div class="page request">
     <h1>Request a Song for $1 🎶</h1>
     <p class="subtitle">
-      Choose your favorite track, drop just <strong>$1</strong>, and we’ll add it
-      to the live playlist at Gas Works Park. Your song, your vibe — set against
+      Choose your favorite tracks, drop just <strong>$1 each</strong>, and we’ll add them
+      to the live playlist at Gas Works Park. Your songs, your vibe — set against
       Seattle’s iconic skyline.
     </p>
 
@@ -12,12 +12,52 @@
       {{ queueOpen ? "⬆️ Hide Queue" : "🎶 Show Queue" }}
     </button>
 
+    <!-- Queue section -->
     <div v-show="queueOpen" class="queue-section">
-      <div v-html="queueHtml"></div>
+      <div v-if="nowPlaying" class="now-playing">
+        <p>▶️ Now Playing:</p>
+        <div class="queue-item">
+          <img
+            :src="nowPlaying.album.images[2]?.url"
+            alt="cover"
+            class="queue-cover"
+          />
+          <div class="queue-info">
+            <div class="queue-title">{{ nowPlaying.name }}</div>
+            <div class="queue-artist">
+              {{ nowPlaying.artists.map((a:any) => a.name).join(", ") }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 v-if="queue.length">Up Next:</h3>
+      <div
+        v-for="track in queue"
+        :key="track.uri"
+        class="queue-item"
+        :class="{ highlight: lastAddedUris.includes(track.uri) }"
+      >
+        <img
+          :src="track.album.images[2]?.url"
+          alt="cover"
+          class="queue-cover"
+        />
+        <div class="queue-info">
+          <div class="queue-title">{{ track.name }}</div>
+          <div class="queue-artist">
+            {{ track.artists.map((a:any) => a.name).join(", ") }}
+          </div>
+        </div>
+        <span v-if="lastAddedUris.includes(track.uri)" class="your-song">Your Song</span>
+      </div>
+
+      <p v-if="!nowPlaying && !queue.length">No songs in queue.</p>
     </div>
 
     <!-- Song search -->
     <input
+      v-if="searchVisible"
       id="songSearch"
       type="text"
       v-model="query"
@@ -40,15 +80,30 @@
     </ul>
 
     <!-- Confirmation -->
-    <div v-if="selectedSong" id="message">
-      <p>
-        🎵 You selected:<br />
-        <strong>{{ selectedSong.title }}</strong><br />
-        <span class="artist">{{ selectedSong.artist }}</span>
-      </p>
+    <div v-if="selectedSongs.length" id="message">
+      <p>🎵 You selected:</p>
+      <div
+        v-for="(song, index) in selectedSongs"
+        :key="song.uri"
+        class="queue-item"
+      >
+        <img
+          :src="song.image"
+          alt="cover"
+          class="queue-cover"
+        />
+        <div class="queue-info">
+          <div class="queue-title">{{ song.title }}</div>
+          <div class="queue-artist">{{ song.artist }}</div>
+        </div>
+        <button class="btn btn-remove" @click="removeSong(index)">❌</button>
+      </div>
+
       <div class="action-buttons">
-        <button class="btn btn-switch" @click="switchSong">🔄 Switch</button>
-        <button class="btn btn-confirm" @click="showPaypal">✅ Confirm ($1)</button>
+        <button class="btn btn-switch" @click="addAnotherSong">➕ Add Another Song</button>
+        <button class="btn btn-confirm" @click="showPaypal">
+          ✅ Confirm (${{ selectedSongs.length }})
+        </button>
       </div>
     </div>
 
@@ -59,7 +114,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from "vue";
-import { db, functions } from "../firebase"; // centralized firebase.ts
+import { db, functions } from "../firebase";
 import { httpsCallable } from "firebase/functions";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
@@ -70,9 +125,12 @@ const getSpotifyQueue = httpsCallable(functions, "getSpotifyQueue");
 // State
 const query = ref("");
 const results = ref<any[]>([]);
-const selectedSong = ref<any | null>(null);
+const selectedSongs = ref<any[]>([]);
 const queueOpen = ref(false);
-const queueHtml = ref("");
+const nowPlaying = ref<any | null>(null);
+const queue = ref<any[]>([]);
+const lastAddedUris = ref<string[]>([]);
+const searchVisible = ref(true);
 
 // ✅ Search Spotify
 async function searchSongs() {
@@ -90,24 +148,30 @@ async function searchSongs() {
 
 // ✅ Select song
 function selectSong(song: any) {
-  selectedSong.value = {
+  selectedSongs.value.push({
     uri: song.uri,
     title: song.name,
     artist: song.artist,
-  };
+    image: song.image,
+  });
   results.value = [];
+  query.value = "";
+  searchVisible.value = false; // hide search until "add another song"
 }
 
-// ✅ Switch song
-function switchSong() {
-  selectedSong.value = null;
+// ✅ Remove song
+function removeSong(index: number) {
+  selectedSongs.value.splice(index, 1);
+  if (!selectedSongs.value.length) {
+    searchVisible.value = true; // reopen search if no songs left
+  }
+}
+
+// ✅ Add another song
+function addAnotherSong() {
+  searchVisible.value = true;
   query.value = "";
   results.value = [];
-  const paypalContainer = document.getElementById("paypal-button-container");
-  if (paypalContainer) {
-    paypalContainer.innerHTML = "";
-    (paypalContainer as HTMLElement).style.display = "none";
-  }
 }
 
 // ✅ Show PayPal
@@ -116,69 +180,81 @@ function showPaypal() {
   if (!paypalContainer) return;
   (paypalContainer as HTMLElement).style.display = "block";
 
-  // Render PayPal once
   if (!paypalContainer.hasChildNodes()) {
     (window as any).paypal
       .Buttons({
         createOrder: (data: any, actions: any) => {
           return actions.order.create({
-            purchase_units: [{ amount: { value: "1.00" } }],
+            purchase_units: [
+              { amount: { value: (selectedSongs.value.length * 1).toFixed(2) } },
+            ],
           });
         },
         onApprove: async (data: any, actions: any) => {
           await actions.order.capture();
-          await submitSong();
+          await submitSongs();
         },
       })
       .render("#paypal-button-container");
   }
 }
 
-// ✅ Submit song to Firestore
-async function submitSong() {
-  if (!selectedSong.value) {
-    alert("Please select a song first.");
+// ✅ Submit all songs to Firestore
+async function submitSongs() {
+  if (!selectedSongs.value.length) {
+    alert("Please select at least one song.");
     return;
   }
-  await addDoc(collection(db, "songRequests"), {
-    ...selectedSong.value,
-    createdAt: serverTimestamp(),
-    status: "pending",
-  });
-  alert(`✅ Payment successful. Your song "${selectedSong.value.title}" is added!`);
-  switchSong();
+
+  // collect all uris being added
+  const uris: string[] = [];
+
+  for (const song of selectedSongs.value) {
+    await addDoc(collection(db, "songRequests"), {
+      ...song,
+      createdAt: serverTimestamp(),
+      status: "pending",
+    });
+    uris.push(song.uri);
+  }
+
+  // track them for highlight
+  lastAddedUris.value = uris;
+
+  alert(`✅ Payment successful. Your ${selectedSongs.value.length} song(s) have been added!`);
+
+  selectedSongs.value = [];
+  searchVisible.value = true;
+
+  // Always show queue after submitting
+  queueOpen.value = true;
+  await refreshQueue();
+
+  const paypalContainer = document.getElementById("paypal-button-container");
+  if (paypalContainer) {
+    paypalContainer.innerHTML = "";
+    (paypalContainer as HTMLElement).style.display = "none";
+  }
 }
 
-// ✅ Queue toggle
+// ✅ Fetch queue
+async function refreshQueue() {
+  try {
+    const res: any = await getSpotifyQueue();
+    nowPlaying.value = res.data.currentlyPlaying || null;
+    queue.value = res.data.queue || [];
+  } catch (err) {
+    console.error("Queue error:", err);
+    nowPlaying.value = null;
+    queue.value = [];
+  }
+}
+
+// ✅ Toggle queue
 async function toggleQueue() {
   queueOpen.value = !queueOpen.value;
   if (queueOpen.value) {
-    try {
-      const res: any = await getSpotifyQueue();
-      const { currentlyPlaying, queue } = res.data;
-
-      let html = "";
-      if (currentlyPlaying) {
-        html += `<p>▶️ Now Playing:<br><strong>${currentlyPlaying.name}</strong><br><span style="font-size:13px;color:#555">${currentlyPlaying.artists
-          .map((a: any) => a.name)
-          .join(", ")}</span></p>`;
-      }
-      if (queue && queue.length) {
-        html += "<h3>Up Next:</h3><ul>";
-        queue.forEach((track: any) => {
-          html += `<li>${track.name} — ${track.artists
-            .map((a: any) => a.name)
-            .join(", ")}</li>`;
-        });
-        html += "</ul>";
-      } else {
-        html += "<p>No songs in queue.</p>";
-      }
-      queueHtml.value = html;
-    } catch (err) {
-      console.error("Queue error:", err);
-      queueHtml.value = "<p>⚠️ Could not load queue.</p>";
-    }
+    await refreshQueue();
   }
 }
 
@@ -189,7 +265,6 @@ onMounted(() => {
   }
 });
 </script>
-
 
 <style scoped>
 .subtitle {
@@ -241,7 +316,7 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 .btn {
   padding: 10px 14px;
@@ -252,10 +327,19 @@ onMounted(() => {
 }
 .btn-switch {
   background: #eee;
+  margin-bottom: 12px;
 }
 .btn-confirm {
   background: #28a745;
   color: white;
+}
+.btn-remove {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  margin-left: auto;
+  cursor: pointer;
+  color: #d9534f;
 }
 #paypal-button-container {
   margin-top: 15px;
@@ -275,5 +359,56 @@ onMounted(() => {
 .artist {
   font-size: 13px;
   color: #666;
+}
+
+/* Queue styles */
+.queue-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.queue-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.queue-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.queue-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.queue-artist {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Highlight for new song */
+.highlight {
+  background: #fff8e1;
+  border-left: 3px solid #fbc02d;
+  padding-left: 8px;
+  transition: background 0.5s ease;
+}
+
+.your-song {
+  font-size: 12px;
+  color: #f57c00;
+  margin-left: auto;
+  font-weight: 600;
 }
 </style>
