@@ -1,85 +1,247 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Song Request</title>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Song Request</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 320px;
+      width: 100%;
+      margin: 20px auto;
+      padding: 10px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    #songSearch {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      box-sizing: border-box;
+    }
+    #results {
+      list-style: none;
+      margin: 10px 0 0 0;
+      padding: 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    #results li {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      font-size: 16px;
+    }
+    #results li:hover {
+      background: #f0f0f0;
+    }
+    #results img {
+      margin-right: 10px;
+      border-radius: 4px;
+      width: 48px;
+      height: 48px;
+    }
+    #message {
+      display: none;   /* hide by default */
+      margin-top: 15px;
+      font-size: 15px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .action-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .btn {
+      padding: 10px 14px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-switch {
+      background: #eee;
+    }
+    .btn-confirm {
+      background: #28a745;
+      color: white;
+    }
 
-    <!-- Load PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AeJNcZXHo2-GKgHtgmBXvhpHfzkFPDBQp8wX_krD4xf92VZ3z4Xh1MA_Y8zNq_EIfRr_5txqdVPLokeh&currency=USD"></script>
+    #paypal-button-container {
+      margin-top: 15px;
+      width: 100%;
+      max-width: 320px;   /* ✅ fits nicely on iPhones */
+      margin-left: auto;
+      margin-right: auto;
+    }
 
-    <!-- Load Firebase SDK -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    #paypal-button-container iframe {
+      max-width: 100% !important;   /* force PayPal iframe to shrink */
+    }
+  </style>
+</head>
+<body>
+  <h1>Request a Song for $1 🎶</h1>
 
-      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-      const firebaseConfig = {
-        apiKey: "AIzaSyDdO0OUFx2QIe74IdfN1CTXwWxQqoIzuHs",
-        authDomain: "song-request-ddc2e.firebaseapp.com",
-        projectId: "song-request-ddc2e",
-        storageBucket: "song-request-ddc2e.firebasestorage.app",
-        messagingSenderId: "498812073299",
-        appId: "1:498812073299:web:b5ced546f838983cb21da6",
-        measurementId: "G-8X16XBXZ1C"
-      };
+  <!-- Input and results -->
+  <input type="text" id="songSearch" placeholder="Type a song..." autocomplete="off" />
+  <ul id="results"></ul>
 
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-    </script>
+  <!-- Selected song message + action buttons -->
+  <div id="message"></div>
 
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin-top: 50px;
-      }
-      h1 {
-        color: #333;
-      }
-      #paypal-button-container {
-        margin-top: 20px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>🎵 Request a Song for $1 🎵</h1>
-    <p>Click below to pay with PayPal and unlock the request form.</p>
+  <!-- PayPal buttons will be rendered here -->
+  <div id="paypal-button-container"></div>
 
-    <!-- PayPal button container -->
-    <div id="paypal-button-container"></div>
+  <!-- PayPal SDK (sandbox client-id here; swap with live for production) -->
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
 
-    <script>
-      paypal.Buttons({
-        style: {
-          layout: 'vertical',
-          color:  'blue',
-          shape:  'rect',
-          label:  'paypal'
-        },
-        createOrder: function(data, actions) {
-          return actions.order.create({
-            purchase_units: [{
-              amount: {
-                value: '1.00'  // $1
-              }
-            }]
-          });
-        },
-        onApprove: function(data, actions) {
-          return actions.order.capture().then(function(details) {
-            console.log("Payment approved:", details);
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
+    import { getFirestore, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-            // ✅ After payment, redirect to the song request form
-            window.location.href = "/song-request.html";
-          });
-        },
-        onCancel: function (data) {
-          alert("Payment cancelled.");
-        },
-        onError: function (err) {
-          console.error("PayPal Checkout error:", err);
-          alert("Something went wrong with PayPal.");
+    // 🔧 Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDdO0OUFx2QIe74IdfN1CTXwWxQqoIzuHs",
+      authDomain: "song-request-ddc2e.firebaseapp.com",
+      projectId: "song-request-ddc2e",
+      storageBucket: "song-request-ddc2e.firebasestorage.app",
+      messagingSenderId: "498812073299",
+      appId: "1:498812073299:web:b5ced546f838983cb21da6",
+      measurementId: "G-8X16XBXZ1C"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const functions = getFunctions(app);
+    const db = getFirestore(app);
+    const searchSpotify = httpsCallable(functions, "searchSpotify");
+
+    // DOM references
+    const input = document.getElementById("songSearch");
+    const results = document.getElementById("results");
+    const message = document.getElementById("message");
+    const paypalContainer = document.getElementById("paypal-button-container");
+
+    let selectedSong = null;
+
+    /** Render search results list */
+    function renderResults(songs) {
+      results.innerHTML = songs.map(song => `
+        <li data-uri="${song.uri}" data-name="${song.name}" data-artist="${song.artist}">
+          <img src="${song.image}" alt="album art">
+          <div>
+            <div><strong>${song.name}</strong></div>
+            <div style="font-size:12px;color:#666">${song.artist}</div>
+          </div>
+        </li>
+      `).join("");
+
+      [...results.querySelectorAll("li")].forEach(li => {
+        li.addEventListener("click", () => {
+          selectedSong = {
+            uri: li.dataset.uri,
+            title: li.dataset.name,
+            artist: li.dataset.artist
+          };
+          results.innerHTML = "";
+          renderConfirmation();
+        });
+      });
+    }
+
+    /** Render confirmation message + buttons */
+    function renderConfirmation() {
+      if (!selectedSong) return;
+
+      message.style.display = "block";  // show box now
+
+      message.innerHTML = `
+        <p>🎵 You selected:<br><strong>${selectedSong.title}</strong><br><span style="font-size:13px;color:#555">${selectedSong.artist}</span></p>
+        <div class="action-buttons">
+          <button id="switchSongBtn" class="btn btn-switch">🔄 Switch</button>
+          <button id="confirmSongBtn" class="btn btn-confirm">✅ Confirm</button>
+        </div>
+      `;
+
+      document.getElementById("switchSongBtn").addEventListener("click", () => {
+        selectedSong = null;
+        message.innerHTML = "";
+        message.style.display = "none";   // 👈 hide grey box
+        paypalContainer.innerHTML = "";   // clear PayPal buttons
+        paypalContainer.style.display = "none";
+        input.value = "";
+        input.focus();
+      });
+
+      document.getElementById("confirmSongBtn").addEventListener("click", () => {
+        paypalContainer.style.display = "block";
+
+        // Render PayPal buttons *only once*
+        if (!paypalContainer.hasChildNodes()) {
+          paypal.Buttons({
+            createOrder: (data, actions) => {
+              return actions.order.create({
+                purchase_units: [{ amount: { value: "1.00" } }]
+              });
+            },
+            onApprove: async (data, actions) => {
+              await actions.order.capture();
+              await submitSong();
+            }
+          }).render('#paypal-button-container');
         }
-      }).render('#paypal-button-container');
-    </script>
-  </body>
+      });
+    }
+
+    /** Add song to Firestore after PayPal approval */
+    async function submitSong() {
+      if (!selectedSong) {
+        alert("Please select a song first.");
+        return;
+      }
+
+      await addDoc(collection(db, "songRequests"), {
+        ...selectedSong,
+        createdAt: serverTimestamp(),
+        status: "pending"
+      });
+
+      message.innerHTML = `<p class="success">✅ Payment successful. Your song <strong>${selectedSong.title}</strong> is added!</p>`;
+      input.value = "";
+      results.innerHTML = "";
+      paypalContainer.style.display = "none";
+      selectedSong = null;
+    }
+
+    // Search input handler
+    input.addEventListener("input", async () => {
+      const query = input.value.trim();
+      if (!query) {
+        results.innerHTML = "";
+        return;
+      }
+      try {
+        const res = await searchSpotify({ query });
+        renderResults(res.data);
+      } catch (err) {
+        console.error("Search error:", err);
+      }
+    });
+  </script>
+</body>
 </html>
