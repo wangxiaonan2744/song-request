@@ -1,0 +1,99 @@
+:root {
+  --bg-light: #FAF9F6;
+  --card-bg: #FFFFFF;
+  --accent-gradient: linear-gradient(135deg, #FFD7E2, #E9D0FF);
+  --text-primary: #333;
+  --text-secondary: #555;
+  --btn-border: #E07A5F;
+  --btn-text: #E07A5F;
+  --btn-hover-bg: #E07A5F;
+  --btn-hover-text: #FAF9F6;
+
+  --heading-font: 'Playfair Display', serif;
+  --body-font: 'Inter', sans-serif;
+}
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-primary);
+  font-family: var(--body-font);
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+/* Page container */
+.page {
+  max-width: 360px;
+  width: 100%;
+  margin: 20px auto;
+  padding: 20px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  text-align: left;
+}
+
+/* Headings */
+h1, h2, h3 {
+  margin-bottom: 12px;
+  font-family: var(--heading-font);
+  font-weight: 600;
+  line-height: 1.3;
+}
+h1 {
+  font-size: 26px;
+  color: var(--text-primary);
+}
+h2 {
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+h3 {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+/* Paragraphs */
+p {
+  font-family: var(--body-font);
+  font-size: 15px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+/* Cards & Highlight containers */
+.card-highlight {
+  background: var(--accent-gradient);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-family: var(--body-font);
+}
+
+/* Buttons */
+.btn, button {
+  font-family: var(--body-font);
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 2px solid var(--btn-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--btn-text);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn:hover, button:hover {
+  background: var(--btn-hover-bg);
+  color: var(--btn-hover-text);
+}
+
+/* Links */
+a {
+  color: var(--btn-border);
+  text-decoration: none;
+  font-family: var(--body-font);
+}
+a:hover {
+  text-decoration: underline;
+}
