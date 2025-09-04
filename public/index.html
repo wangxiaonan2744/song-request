@@ -95,6 +95,14 @@
 <body>
   <h1>Request a Song for $1 🎶</h1>
 
+  <!--Queue-->
+  <button id="toggleQueueBtn" class="btn btn-switch" style="margin-bottom: 10px;">
+  🎶 Show Queue
+  </button>
+  <div id="queueSection" style="display:none; text-align:left; margin-bottom:20px;">
+    <div id="queueDisplay"></div>
+  </div>
+
   <!-- Input and results -->
   <input type="text" id="songSearch" placeholder="Type a song..." autocomplete="off" />
   <ul id="results"></ul>
@@ -129,7 +137,48 @@
     const app = initializeApp(firebaseConfig);
     const functions = getFunctions(app);
     const db = getFirestore(app);
-    const searchSpotify = httpsCallable(functions, "searchSpotify");
+    const searchSpotify = httpsCallable(functions, "searchSpotify");const getSpotifyQueue = httpsCallable(functions, "getSpotifyQueue");
+const toggleQueueBtn = document.getElementById("toggleQueueBtn");
+const queueSection = document.getElementById("queueSection");
+const queueDisplay = document.getElementById("queueDisplay");
+
+toggleQueueBtn.addEventListener("click", async () => {
+  if (queueSection.style.display === "none") {
+    // Expand and load queue
+    queueSection.style.display = "block";
+    toggleQueueBtn.textContent = "⬆️ Hide Queue";
+    await showQueue();
+  } else {
+    // Collapse
+    queueSection.style.display = "none";
+    toggleQueueBtn.textContent = "🎶 Show Queue";
+  }
+});
+
+async function showQueue() {
+  try {
+    const res = await getSpotifyQueue();
+    const { currentlyPlaying, queue } = res.data;
+
+    let html = "";
+    if (currentlyPlaying) {
+      html += `<p>▶️ Now Playing:<br><strong>${currentlyPlaying.name}</strong><br><span style="font-size:13px;color:#555">${currentlyPlaying.artists.map(a => a.name).join(", ")}</span></p>`;
+    }
+    if (queue && queue.length) {
+      html += "<h3>Up Next:</h3><ul>";
+      queue.forEach(track => {
+        html += `<li>${track.name} — ${track.artists.map(a => a.name).join(", ")}</li>`;
+      });
+      html += "</ul>";
+    } else {
+      html += "<p>No songs in queue.</p>";
+    }
+    queueDisplay.innerHTML = html;
+  } catch (err) {
+    console.error("Queue error:", err);
+    queueDisplay.innerHTML = "<p>⚠️ Could not load queue.</p>";
+  }
+}
 
     // DOM references
     const input = document.getElementById("songSearch");

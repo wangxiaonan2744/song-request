@@ -36,6 +36,30 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+export const getSpotifyQueue = onCall(
+  {
+    secrets: [SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN],
+  },
+  async () => {
+    const token = await getAccessToken();
+
+    const res = await fetch("https://api.spotify.com/v1/me/player/queue", {
+      headers: { "Authorization": `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Queue API failed: ${res.status} ${errText}`);
+    }
+
+    const data: any = await res.json();
+    return {
+      currentlyPlaying: data.currently_playing,
+      queue: data.queue,
+    };
+  }
+);
+
 /**
  * Callable function: search Spotify tracks.
  * Frontend calls this with { query: "song name" } and gets back top 5 matches.
